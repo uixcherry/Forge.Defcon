@@ -189,27 +189,6 @@ dotnet run
 
 Требуется **Windows** и **.NET 9 SDK**.
 
-### Публикация exe
-
-```powershell
-dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o ../publish
-```
-
----
-
-## Структура проекта
-
-```
-├── Assets/           # Иконка
-├── Converters/       # WPF конвертеры
-├── Models/           # ThreatInfo, LogEntry, ScanResult
-├── Services/         # 20 сканеров + ScanEngine
-├── Themes/           # DarkTheme.xaml
-├── ViewModels/       # MVVM
-├── MainWindow.xaml
-└── App.xaml
-```
-
 ---
 
 ## Лицензия
