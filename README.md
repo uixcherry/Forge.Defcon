@@ -8,6 +8,9 @@ PC scanner for detecting cheats, prohibited software, and DMA hardware. Built wi
 
 **[Releases](https://github.com/uixcherry/Forge.Defcon/releases)** — скачать `Forge.Defcon.exe` (Windows x64, self-contained, ~130 MB)
 
+> Если Release пустой (нет exe): GitHub Actions могут быть заблокированы. Запустите локально:  
+> `$env:GITHUB_TOKEN = "ghp_xxx"; .\create-release.ps1`
+
 ---
 
 ## Руководство для администраторов
@@ -24,29 +27,154 @@ PC scanner for detecting cheats, prohibited software, and DMA hardware. Built wi
 
 ## Справочник детекторов
 
-| Детектор | Что ищет | Severity |
-|----------|----------|----------|
-| **Process Scanner** | Cheat Engine, x64dbg, IDA, инжекторы, тренеры, PCILeech, HWID Spoofer | Critical |
-| **Driver Scanner** | kdmapper, dbk64, capcom.sys, mhyprot, pcileech.sys | Critical |
-| **DMA Scanner** | PCILeech, Screamer, FPGA (Xilinx, Altera, FT601), Thunderbolt | Critical |
-| **File Scanner** | cheatengine.exe, pcileech.exe, .ct, aimbot, dma_cheat | Critical–High |
-| **Registry Scanner** | Uninstall, UserAssist, BAM, отладчики | Critical–Medium |
-| **Memory Scanner** | DLL читов в процессах (speedhack, aimbot, d3dhook) | Critical |
-| **Device Scanner** | DMA USB (FT601, Xilinx), FPGA-адаптеры | Critical |
-| **VM Scanner** | VMware, VirtualBox, Hyper-V, QEMU | Info–Medium |
-| **Steam Account** | Steam-аккаунты, мультиакки | Info–Medium |
-| **Cleanup Detector** | Prefetch очищен, Event Log стёрт, CCleaner | Critical |
-| **Isolation Scanner** | Firewall/Defender/Secure Boot/UAC выключены | Medium |
-| **Startup Scanner** | Автозагрузка читов (Run, Startup, Tasks) | High |
-| **Network Scanner** | hosts блокирует античит, proxy/DNS | Critical–Medium |
-| **Defender Exclusions** | Исключения для путей читов | Critical |
-| **USB History** | Rubber Ducky, Bash Bunny, Teensy, Flipper | Critical |
-| **Execution History** | Prefetch, AmCache, MuiCache — запуск читов | Critical |
-| **Browser History** | UnknownCheats, MPGH, cheat engine | High |
-| **HWID Spoofer** | AntiFakHWID, volumeid, spoofer | Critical |
-| **Kernel Debug** | Test signing, отключена проверка подписи | High |
-| **Game Cheats** | Файлы читов в папках игр | High |
-| **Suspicious Services** | Сервисы kdmapper, spoofer, inject | High |
+Кратко: что делает каждый детектор и что он находит.
+
+---
+
+### Process Scanner
+**Что делает:** Смотрит, какие программы сейчас запущены на ПК.  
+**Что ищет:** Cheat Engine, отладчики (x64dbg, IDA), инжекторы, тренеры (WeMod, Plitch), PCILeech, HWID-спуферы и ещё 140+ известных инструментов.  
+**Зачем:** Если программа из списка запущена — это прямая улика.
+
+---
+
+### Driver Scanner
+**Что делает:** Проверяет папку с драйверами Windows.  
+**Что ищет:** Опасные драйверы (kdmapper, dbk64, capcom.sys, mhyprot, pcileech.sys и др.), которые читеры используют для обхода защиты.  
+**Зачем:** Такие драйверы часто нужны для загрузки читов в ядро системы.
+
+---
+
+### DMA Scanner
+**Что делает:** Ищет DMA-оборудование и софт — железо и программы для чтения памяти игры с другого ПК.  
+**Что ищет:** Платы FPGA (Xilinx, Altera), адаптеры FT601, PCILeech, Screamer, Squirrel, Thunderbolt-контроллеры, файлы и ключи реестра DMA-софта.  
+**Зачем:** DMA-читы почти невидимы для античита — они читают память с отдельного устройства.
+
+---
+
+### File Scanner
+**Что делает:** Сканирует диски на подозрительные файлы.  
+**Что ищет:** Исполняемые читов (cheatengine.exe, pcileech.exe), файлы тренеров (.ct, .cetrainer), папки и файлы с названиями вроде aimbot, dma_cheat.  
+**Зачем:** Даже если чит не запущен, его наличие на диске — улика.
+
+---
+
+### Registry Scanner
+**Что делает:** Просматривает реестр Windows.  
+**Что ищет:** Записи об установленных программах (Uninstall), историю запусков (UserAssist, BAM), настройки отладчиков.  
+**Зачем:** Показывает, что софт был установлен или запускался, даже если его уже удалили.
+
+---
+
+### Memory Scanner
+**Что делает:** Смотрит, какие DLL загружены в процессы.  
+**Что ищет:** DLL читов (speedhack, aimbot, d3dhook и т.п.) внутри запущенных программ.  
+**Зачем:** Если DLL найдена — чит сейчас активен в памяти.
+
+---
+
+### Device Scanner
+**Что делает:** Перечисляет подключённые USB и другие устройства.  
+**Что ищет:** DMA-адаптеры (FT601, Xilinx), FPGA-платы, подозрительные устройства по кодам производителя.  
+**Зачем:** DMA-чит часто подключают через USB или PCIe — устройство видно в системе.
+
+---
+
+### VM / Sandbox Scanner
+**Что делает:** Проверяет, не запущена ли система в виртуальной машине.  
+**Что ищет:** VMware, VirtualBox, Hyper-V, QEMU, Sandboxie.  
+**Зачем:** VM иногда используют для обхода античита (игра на хосте, античит в гостевой системе).
+
+---
+
+### Steam Account Scanner
+**Что делает:** Ищет Steam-аккаунты, которые когда-либо входили на этот ПК.  
+**Что ищет:** SteamID, имена, количество аккаунтов.  
+**Зачем:** Много аккаунтов (3+) может означать шаринг или мультиакки.
+
+---
+
+### Cleanup Detector
+**Что делает:** Проверяет, не затирал ли кто-то следы перед проверкой.  
+**Что ищет:** Очищенный Prefetch, стёртые логи Windows, недавний запуск CCleaner/BleachBit/Privazer, пустые «Недавние файлы».  
+**Зачем:** Если сработал — пользователь мог пытаться скрыть активность.
+
+---
+
+### Isolation Scanner
+**Что делает:** Проверяет настройки безопасности Windows.  
+**Что ищет:** Выключенный Firewall, Defender, Secure Boot, UAC, тестовую подпись драйверов.  
+**Зачем:** Ослабленная защита упрощает работу читов.
+
+---
+
+### Startup Scanner
+**Что делает:** Смотрит автозагрузку — что запускается при входе в Windows.  
+**Что ищет:** Читы в Run, RunOnce, папке «Автозагрузка», планировщике задач.  
+**Зачем:** Чит в автозагрузке — пользователь настроил его на постоянный запуск.
+
+---
+
+### Network Scanner
+**Что делает:** Проверяет сетевые настройки.  
+**Что ищет:** Блокировку доменов античита в файле hosts, подмену proxy и DNS.  
+**Зачем:** Может означать попытку обойти проверку или блокировку античита.
+
+---
+
+### Defender Exclusions
+**Что делает:** Смотрит исключения Windows Defender.  
+**Что ищет:** Пути, процессы или расширения, добавленные в исключения и связанные с читами.  
+**Зачем:** Прямая улика — защиту отключили специально для читов.
+
+---
+
+### USB History
+**Что делает:** Смотрит историю подключённых USB-устройств.  
+**Что ищет:** Rubber Ducky, Bash Bunny, Teensy, Flipper и похожие устройства.  
+**Зачем:** Такие устройства могут использоваться для HID-атак или скриптов.
+
+---
+
+### Execution History
+**Что делает:** Ищет следы прошлых запусков программ.  
+**Что ищет:** Имена читов в Prefetch, AmCache, MuiCache, RecentApps.  
+**Зачем:** Показывает, что софт запускался раньше, даже если сейчас он не запущен.
+
+---
+
+### Browser History
+**Что делает:** Сканирует историю браузеров (Chrome, Edge, Firefox).  
+**Что ищет:** Посещения сайтов вроде UnknownCheats, MPGH, страниц про cheat engine.  
+**Зачем:** Косвенный признак интереса к читам.
+
+---
+
+### HWID Spoofer
+**Что делает:** Ищет софт для смены HWID (идентификатора железа).  
+**Что ищет:** AntiFakHWID, volumeid, spoofer и похожие программы в процессах, файлах и реестре.  
+**Зачем:** Спуферы используют для обхода HWID-банов.
+
+---
+
+### Kernel Debug
+**Что делает:** Проверяет режим отладки и подписи драйверов.  
+**Что ищет:** Включённый test signing, отключённую проверку подписи драйверов.  
+**Зачем:** Это упрощает загрузку неподписанных драйверов (читов).
+
+---
+
+### Game Cheats
+**Что делает:** Сканирует папки с играми (Valorant, CS2, Fortnite и др.).  
+**Что ищет:** Файлы и папки читов (.ct, loader, aimbot и т.п.) рядом с игрой.  
+**Зачем:** Чит в папке игры — очень сильный признак.
+
+---
+
+### Suspicious Services
+**Что делает:** Перечисляет службы Windows.  
+**Что ищет:** Службы с подозрительными именами (kdmapper, spoofer, inject и т.д.).  
+**Зачем:** Чит или вспомогательный софт может работать как служба.
 
 ---
 
